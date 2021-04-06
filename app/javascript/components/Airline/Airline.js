@@ -35,7 +35,8 @@ const Main = styled.div`
 const Airline = (props) =>{
 
     const [airline, setAirline] = useState({})
-    const [review, setReview] = useState({})
+    const [reviews, setReviews] = useState([])
+    const [review, setReview] = useState({ title: '', description: '', score: 0 })
     const [loaded, setLoaded] = useState(false)
 
     useEffect( () => {
@@ -45,6 +46,7 @@ const Airline = (props) =>{
         axios.get(url)
         .then( resp => {
             setAirline(resp.data)
+            setReviews(resp.data.included)
             setLoaded(true)
         })
         .catch( resp => console.log (resp))
@@ -52,10 +54,8 @@ const Airline = (props) =>{
     }, [])
 
     const handleChange = (e) => {
-        e.preventDefault()
-        setReview({...review, [e.target.name]:e.target.value})
-        console.log('review:', review)
-    }
+        setReview(Object.assign({}, review, {[e.target.name]: e.target.value}))
+      }
     
     const handleSubmit = (e) => {
         e.preventDefault()
@@ -63,19 +63,18 @@ const Airline = (props) =>{
         const csrfToken = document.querySelector('[name=csrf-token]').content
         axios.defaults.headers.common['X-CSRF-TOKEN'] = csrfToken
 
-        const airline_id = airline.data.id
-        axios.post('/api/v1/reviews', {review, airline_id})
+        const airline_id = parseInt(airline.data.id)
+        axios.post('/api/v1/reviews', {...review, airline_id})
         .then( resp => {
-            const included = [...airline.included, resp.data.data]
-            setAirline({...airline, included})
-            setReview({title:'', description:'', score: 0})
+            setReviews([...reviews, resp.data.data])
+            setReview({ title: '', description: '', score: 0 })
         })
         .catch( resp => {})
     }
 
     const setRating = (score, e) => {
         e.preventDefault()
-        debugger
+        setReview({...review, score})
     }
 
     return(
@@ -93,11 +92,11 @@ const Airline = (props) =>{
             </Column>
             <Column>
                 <ReviewForm
+                name={airline.data.attributes.name}
+                review={review}
                 handleChange={handleChange}
                 handleSubmit={handleSubmit}
                 setRating={setRating}
-                attributes = {airline.data.attributes}
-                review = {review}
                 />
             </Column>
         </Fragment>
