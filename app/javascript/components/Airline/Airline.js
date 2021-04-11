@@ -3,6 +3,7 @@ import axios from 'axios'
 import Header from './Header'
 import styled from 'styled-components'
 import ReviewForm from './ReviewForm'
+import Review from './Review'
 
 const Wrapper = styled.div`
     margin-left: auto;
@@ -72,9 +73,46 @@ const Airline = (props) =>{
         .catch( resp => {})
     }
 
+    const handleDestroy = (id, e) => {
+        e.preventDefault()
+
+        const csrfToken = document.querySelector('[name=csrf-token]').content
+        axios.defaults.headers.common['X-CSRF-TOKEN'] = csrfToken
+    
+        axios.delete(`/api/v1/reviews/${id}`)
+        .then( (data) => {
+          const included = [...reviews]
+          const index = included.findIndex( (data) => data.id == id )
+          included.splice(index, 1)
+    
+          setReviews(included)
+        })
+        .catch( data => console.log('Error', data) )
+      }
+
     const setRating = (score, e) => {
         e.preventDefault()
         setReview({...review, score})
+    }
+
+    
+    let total, average = 0
+    let userReviews
+  
+    if (reviews && reviews.length > 0) {
+      total = reviews.reduce((total, review) => total + review.attributes.score, 0)
+      average = total > 0 ? (parseFloat(total) / parseFloat(reviews.length)) : 0
+      
+      userReviews = reviews.map( (review, index) => {
+        return (
+          <Review 
+            key={index}
+            id={review.id}
+            attributes={review.attributes}
+            handleDestroy={handleDestroy}
+          />
+        )
+      })
     }
 
     return(
@@ -85,9 +123,10 @@ const Airline = (props) =>{
                 <Main>
                 <Header
                 attributes={airline.data.attributes}
-                reviews={airline.included}
+                reviews={reviews}
+                average={average}
                 />
-                <div className="reviews"></div> 
+                {userReviews}
                 </Main>
             </Column>
             <Column>
